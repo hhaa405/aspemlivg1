@@ -1,0 +1,88 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>請輸入密碼</title>
+<style>body{font-family:system-ui,"PingFang TC","Noto Sans TC",sans-serif;background:#111;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}
+form{background:#fff;padding:24px;border-radius:16px;width:min(320px,90vw);text-align:center}input[type=password]{width:100%;box-sizing:border-box;font-size:18px;padding:10px;border:2px solid #ddd;border-radius:10px;margin:12px 0}
+button{width:100%;padding:12px;border:0;border-radius:99px;background:#16a34a;color:#fff;font-size:17px;font-weight:800}.e{color:#dc2626;font-size:14px;min-height:18px}label{font-size:14px;color:#555;display:block;margin-bottom:10px}
+html.busy form{display:none}html.busy body::after{content:"解鎖中…";color:#fff;font-size:17px;font-weight:700}</style>
+<script>
+(()=>{
+const S="TElJHEuSal74oFPnk7Jh+Q==",IV="mmJJOahQYNQ+J52/",N=600000,EXPECT=1935844,K="_k_"+S.slice(0,8);
+const b64u=s=>{const bin=atob(s),out=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return out};
+const iv=b64u(IV),salt=b64u(S);
+function loadCt(){
+  const url="payload.bin";
+  const cacheP=(async()=>{try{return window.caches?await caches.open("twbb-auto-834607"):null}catch(e){return null}})();
+  return (async()=>{
+    const cache=await cacheP;
+    if(cache){
+      try{
+        const hit=await cache.match(url);
+        if(hit){
+          const buf=await hit.arrayBuffer();
+          if(buf.byteLength===EXPECT) return new Uint8Array(buf);
+        }
+      }catch(e){}
+    }
+    const res=await fetch(url);
+    if(!res.ok) throw new Error("fetch");
+    const buf=await res.arrayBuffer();
+    const u8=new Uint8Array(buf);
+    let ct=u8;
+    if(u8.byteLength!==EXPECT){
+      const txt=new TextDecoder().decode(u8).replace(/\s+/g,"");
+      const bin=atob(txt);ct=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)ct[i]=bin.charCodeAt(i);
+    }
+    if(ct.byteLength!==EXPECT) throw new Error("size");
+    if(cache){try{await cache.put(url,new Response(ct.buffer.slice(ct.byteOffset,ct.byteOffset+ct.byteLength),{headers:{"Content-Type":"application/octet-stream"}}))}catch(e){}}
+    return ct;
+  })();
+}
+let ctP=loadCt();
+async function fromRaw(r){return crypto.subtle.importKey("raw",r,"AES-GCM",false,["decrypt"])}
+async function reveal(key,ct){
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,ct);
+  const h=new TextDecoder().decode(pt);
+  document.open();document.write(h);document.close();
+}
+function saveKey(raw){
+  let s="";for(let i=0;i<raw.length;i++)s+=String.fromCharCode(raw[i]);
+  localStorage.setItem(K,btoa(s));
+}
+const saved=localStorage.getItem(K);
+if(saved){
+  document.documentElement.classList.add("busy");
+  ctP.then(ct=>fromRaw(b64u(saved)).then(key=>reveal(key,ct))).catch(err=>{
+    if(err&&err.name==="OperationError") localStorage.removeItem(K);
+    document.documentElement.classList.remove("busy");
+    const e=document.getElementById("e");
+    if(e&&!(err&&err.name==="OperationError")){e.style.color="#dc2626";e.textContent="載入失敗，請重試"}
+  });
+}
+document.addEventListener("DOMContentLoaded",()=>{
+  const form=document.getElementById("f");
+  form.onsubmit=async ev=>{
+    ev.preventDefault();
+    const e=document.getElementById("e"),b=document.getElementById("b");
+    b.disabled=true;e.style.color="#555";e.textContent="解鎖中…";
+    const keyP=(async()=>{
+      const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(document.getElementById("p").value),"PBKDF2",false,["deriveBits"]);
+      const raw=new Uint8Array(await crypto.subtle.deriveBits({name:"PBKDF2",salt,iterations:N,hash:"SHA-256"},base,256));
+      return {raw,key:await fromRaw(raw)};
+    })();
+    try{
+      const remember=document.getElementById("r").checked;
+      const [{raw,key},ct]=await Promise.all([keyP,ctP]);
+      const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,ct);
+      if(remember) saveKey(raw);
+      const h=new TextDecoder().decode(pt);
+      document.open();document.write(h);document.close();
+    }catch(err){
+      b.disabled=false;
+      e.style.color="#dc2626";
+      e.textContent=(err&&err.name==="OperationError")?"密碼錯誤":"載入失敗，請重試";
+      if(!(err&&err.name==="OperationError")) ctP=loadCt();
+    }
+  };
+});
+})();
+</script></head>
+<body><form id="f"><h2>🔒</h2><div>請輸入密碼</div><input id="p" type="password" autofocus autocomplete="current-password"><label><input id="r" type="checkbox" checked> 記住這台裝置</label><div class="e" id="e"></div><button id="b">進入</button></form></body></html>
