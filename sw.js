@@ -1,5 +1,5 @@
-/* twbb sw twbb-auto-cf0c11 */
-const VER="twbb-auto-cf0c11";
+/* twbb sw twbb-auto-6763a5 */
+const VER="twbb-auto-6763a5";
 self.addEventListener("install",event=>{
   event.waitUntil(self.skipWaiting());
 });
@@ -23,7 +23,7 @@ self.addEventListener("fetch",event=>{
       if(res&&res.ok){
         try{
           const cache=await caches.open(VER);
-          const key=(u.pathname.endsWith("/payload.bin")||u.pathname.endsWith("payload.bin"))?"payload.bin":req;
+          const segs=u.pathname.split("/").filter(Boolean);const base=segs.length?segs[segs.length-1]:"";const key=(base==="payload.bin")?"payload.bin":(base==="index.html"||base===""||base==="aspemlivg1")?"index.html":req;
           await cache.put(key,res.clone());
         }catch(e){}
       }
@@ -31,7 +31,7 @@ self.addEventListener("fetch",event=>{
     }catch(e){
       try{
         const cache=await caches.open(VER);
-        const hit=await cache.match(req)||await cache.match("payload.bin")||await cache.match("index.html");
+        const hit=await cache.match(req)||await cache.match("index.html")||await cache.match("payload.bin");
         if(hit)return hit;
       }catch(e2){}
       throw e;
