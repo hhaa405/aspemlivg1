@@ -1,5 +1,5 @@
-/* twbb sw twbb-auto-d30d28 */
-const VER="twbb-auto-d30d28";
+/* twbb sw twbb-auto-d9dd9b */
+const VER="twbb-auto-d9dd9b";
 self.addEventListener("install",event=>{
   event.waitUntil(self.skipWaiting());
 });
