@@ -5,35 +5,50 @@ button{width:100%;padding:12px;border:0;border-radius:99px;background:#16a34a;co
 html.busy form{display:none}html.busy body::after{content:"解鎖中…";color:#fff;font-size:17px;font-weight:700}</style>
 <script>
 (()=>{
-const S="TElJHEuSal74oFPnk7Jh+Q==",IV="d5B3qzxNQgfIk6+N",N=600000,EXPECT=2208416,K="_k_"+S.slice(0,8);
+try{if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(function(){})}catch(e){}
+const S="TElJHEuSal74oFPnk7Jh+Q==",IV="vS7tonNJRYFQ4mEK",N=600000,EXPECT=2210634,K="_k_"+S.slice(0,8),CACHE="twbb-auto-cf0c11";
 const b64u=s=>{const bin=atob(s),out=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return out};
 const iv=b64u(IV),salt=b64u(S);
 function loadCt(){
-  const url="payload.bin";
-  const cacheP=(async()=>{try{return window.caches?await caches.open("twbb-auto-40613b"):null}catch(e){return null}})();
+  const url="payload.bin?v="+encodeURIComponent(CACHE);
+  const cacheP=(async()=>{try{return window.caches?await caches.open(CACHE):null}catch(e){return null}})();
   return (async()=>{
+    try{
+      if(window.caches){
+        const keys=await caches.keys();
+        await Promise.all(keys.filter(k=>k.startsWith("twbb-auto-")&&k!==CACHE).map(k=>caches.delete(k)));
+      }
+    }catch(e){}
     const cache=await cacheP;
-    if(cache){
-      try{
-        const hit=await cache.match(url);
-        if(hit){
-          const buf=await hit.arrayBuffer();
-          if(buf.byteLength===EXPECT) return new Uint8Array(buf);
-        }
-      }catch(e){}
+    const decode=async buf=>{
+      const u8=new Uint8Array(buf);
+      let ct=u8;
+      if(u8.byteLength!==EXPECT){
+        const txt=new TextDecoder().decode(u8).replace(/\s+/g,"");
+        const bin=atob(txt);ct=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)ct[i]=bin.charCodeAt(i);
+      }
+      if(ct.byteLength!==EXPECT) throw new Error("size");
+      return ct;
+    };
+    try{
+      const res=await fetch(url,{cache:"no-store"});
+      if(!res.ok) throw new Error("fetch");
+      const ct=await decode(await res.arrayBuffer());
+      if(cache){try{await cache.put("payload.bin",new Response(ct.buffer.slice(ct.byteOffset,ct.byteOffset+ct.byteLength),{headers:{"Content-Type":"application/octet-stream"}}))}catch(e){}}
+      return ct;
+    }catch(e){
+      if(cache){
+        try{
+          const hit=await cache.match("payload.bin")||await cache.match(url);
+          if(hit){
+            const buf=await hit.arrayBuffer();
+            if(buf.byteLength===EXPECT) return new Uint8Array(buf);
+            return await decode(buf);
+          }
+        }catch(e2){}
+      }
+      throw e;
     }
-    const res=await fetch(url);
-    if(!res.ok) throw new Error("fetch");
-    const buf=await res.arrayBuffer();
-    const u8=new Uint8Array(buf);
-    let ct=u8;
-    if(u8.byteLength!==EXPECT){
-      const txt=new TextDecoder().decode(u8).replace(/\s+/g,"");
-      const bin=atob(txt);ct=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)ct[i]=bin.charCodeAt(i);
-    }
-    if(ct.byteLength!==EXPECT) throw new Error("size");
-    if(cache){try{await cache.put(url,new Response(ct.buffer.slice(ct.byteOffset,ct.byteOffset+ct.byteLength),{headers:{"Content-Type":"application/octet-stream"}}))}catch(e){}}
-    return ct;
   })();
 }
 let ctP=loadCt();
